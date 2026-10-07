@@ -7,6 +7,7 @@ import json
 import uuid
 
 from .tracking import Tracker
+from .gaze import GazeAnalyzer
 
 
 @dataclass(frozen=True)
@@ -17,7 +18,7 @@ class Frame:
 
 
 def process(frames: Iterable[Frame], tracker: Tracker, output: TextIO,
-            session_id: str | None = None) -> int:
+            session_id: str | None = None, gaze: GazeAnalyzer | None = None) -> int:
     session_id = session_id or str(uuid.uuid4())
     previous_index = -1
     previous_time = -1.0
@@ -30,10 +31,12 @@ def process(frames: Iterable[Frame], tracker: Tracker, output: TextIO,
         if len({track.track_id for track in tracks}) != len(tracks):
             raise ValueError("Duplicate track IDs in a frame")
         record = {
-            "schema_version": 1, "session_id": session_id,
+            "schema_version": 2 if gaze is not None else 1, "session_id": session_id,
             "frame_index": frame.index, "timestamp_s": frame.timestamp_s,
             "tracks": [asdict(track) for track in tracks],
         }
+        if gaze is not None:
+            record["gaze"] = [asdict(observation) for observation in gaze.observe(frame.image, tracks)]
         output.write(json.dumps(record, allow_nan=False) + "\n")
         previous_index, previous_time = frame.index, frame.timestamp_s
         count += 1

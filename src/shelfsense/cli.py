@@ -8,6 +8,8 @@ from pathlib import Path
 from .pipeline import Frame, process
 from .tracking import Track, YoloByteTracker
 from .video import VideoReader
+from .gaze import GazeAnalyzer
+from .gaze_adapters import L2CSEstimator, OpenCVFaceDetector
 
 
 class DemoTracker:
@@ -28,6 +30,10 @@ def main(argv=None):
     track.add_argument("--confidence", type=float, default=0.1)
     track.add_argument("--fps", type=float)
     track.add_argument("--max-frames", type=int)
+    track.add_argument("--gaze-weights", type=Path, help="Enable L2CS gaze with local weights")
+    track.add_argument("--gaze-arch", default="ResNet50",
+                       choices=["ResNet18", "ResNet34", "ResNet50", "ResNet101", "ResNet152"])
+    track.add_argument("--min-face-size", type=int, default=32)
     args = parser.parse_args(argv)
     if args.output.exists():
         parser.error("Output already exists; choose a new path")
@@ -40,6 +46,10 @@ def main(argv=None):
             parser.error("--fps must be finite and positive")
         if args.max_frames is not None and args.max_frames <= 0:
             parser.error("--max-frames must be positive")
+        if args.gaze_weights is not None and not args.gaze_weights.is_file():
+            parser.error("Gaze weights must be an existing local file")
+        if args.min_face_size <= 0:
+            parser.error("--min-face-size must be positive")
     try:
         if args.command == "demo":
             args.output.parent.mkdir(parents=True, exist_ok=True)
@@ -48,13 +58,17 @@ def main(argv=None):
                                 DemoTracker(), output, session_id="synthetic-demo")
         else:
             tracker = YoloByteTracker(str(args.weights), args.confidence, args.device)
+            gaze = None
+            if args.gaze_weights is not None:
+                gaze = GazeAnalyzer(OpenCVFaceDetector(), L2CSEstimator(
+                    str(args.gaze_weights), args.device, args.gaze_arch), args.min_face_size)
             with VideoReader(str(args.source), args.fps) as frames:
                 args.output.parent.mkdir(parents=True, exist_ok=True)
                 with args.output.open("x") as output:
-                    count = process(islice(frames, args.max_frames), tracker, output)
+                    count = process(islice(frames, args.max_frames), tracker, output, gaze=gaze)
                     if count == 0:
                         raise ValueError("Video contains no decodable frames")
     except (ImportError, OSError, ValueError, RuntimeError) as exc:
-        parser.exit(1, f"Error: {exc}\nInstall vision dependencies with pip install -e '.[vision]' if needed.\n")
+        parser.exit(1, f"Error: {exc}\nFor dependency setup, see README.md and docs/gaze.md.\n")
     print(f"Wrote {count} frames to {args.output}")
     return 0

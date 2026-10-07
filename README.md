@@ -1,8 +1,8 @@
 # ShelfSense
 
-Single-camera shelf attention research project. **Module 1 of 6:** person
-tracking. Gaze inference and analytics are planned, not yet implemented.
-See [project.md](project.md) for the deliverables and commit checkpoints.
+Single-camera shelf attention research project. **Modules 1–2 of 6:** person
+tracking, frontal-face localization and an L2CS-Net gaze adapter. Shelf mapping
+and analytics are planned. The detailed project outline is kept locally.
 
 ## Run the foundation
 
@@ -40,6 +40,21 @@ divided by FPS, starting at zero. Variable-frame-rate input is not supported.
 The default detector threshold of 0.1 preserves low-confidence candidates for
 ByteTrack association. Confidence is detector confidence, not ID certainty.
 
+## Enable gaze estimation
+
+Install the optional adapter and supply local L2CS weights:
+
+```bash
+pip install -e '.[vision,gaze]'
+shelfsense track data/shelf.mp4 --weights models/yolo11n.pt \
+  --gaze-weights models/L2CSNet_gaze360.pkl \
+  --output outputs/gaze.jsonl --max-frames 100
+```
+
+See [gaze setup and coordinate conventions](docs/gaze.md) for model sources,
+limitations and the output schema. The OpenCV face detector is a frontal-face
+baseline; missing and ambiguous observations remain unknown.
+
 ## Output contract
 
 Each JSONL line contains `schema_version`, `session_id`, `frame_index`,
@@ -56,7 +71,8 @@ Unit tests cover pipeline contracts, CLI behavior, adapter arguments and video
 resource cleanup using fakes. The synthetic CLI is also runnable end to end.
 Real YOLO/ByteTrack inference needs a separate smoke test with installed vision
 dependencies, model weights and a consented clip. No accuracy/FPS claims yet.
-The current module exports tracking observations; annotated video, gaze,
+Gaze adapter tests validate preprocessing and angle conversion using fakes;
+pretrained-model inference is not yet validated. Annotated video, shelf targets,
 fixations, database and dashboard are not implemented.
 
 ## Commit workflow
