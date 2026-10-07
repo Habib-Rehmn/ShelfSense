@@ -1,0 +1,60 @@
+"""Local video tracking and a dependency-free contract demo."""
+
+import argparse
+from itertools import islice
+from math import isfinite
+from pathlib import Path
+
+from .pipeline import Frame, process
+from .tracking import Track, YoloByteTracker
+from .video import VideoReader
+
+
+class DemoTracker:
+    def track(self, frame):
+        return [Track(1, (10.0 + frame, 20.0, 60.0 + frame, 140.0), 1.0)]
+
+
+def main(argv=None):
+    parser = argparse.ArgumentParser(description="ShelfSense tracking pipeline")
+    commands = parser.add_subparsers(dest="command", required=True)
+    demo = commands.add_parser("demo", help="Synthetic contract demo, no inference")
+    demo.add_argument("--output", type=Path, required=True)
+    track = commands.add_parser("track", help="Track people in a local CFR video")
+    track.add_argument("source", type=Path)
+    track.add_argument("--weights", type=Path, required=True)
+    track.add_argument("--output", type=Path, required=True)
+    track.add_argument("--device", default="cpu")
+    track.add_argument("--confidence", type=float, default=0.1)
+    track.add_argument("--fps", type=float)
+    track.add_argument("--max-frames", type=int)
+    args = parser.parse_args(argv)
+    if args.output.exists():
+        parser.error("Output already exists; choose a new path")
+    if args.command == "track":
+        if not args.source.is_file() or not args.weights.is_file():
+            parser.error("Source video and model weights must be existing local files")
+        if not 0 < args.confidence <= 1:
+            parser.error("--confidence must be in (0, 1]")
+        if args.fps is not None and (not isfinite(args.fps) or args.fps <= 0):
+            parser.error("--fps must be finite and positive")
+        if args.max_frames is not None and args.max_frames <= 0:
+            parser.error("--max-frames must be positive")
+    try:
+        if args.command == "demo":
+            args.output.parent.mkdir(parents=True, exist_ok=True)
+            with args.output.open("x") as output:
+                count = process((Frame(i, i / 30, i) for i in range(30)),
+                                DemoTracker(), output, session_id="synthetic-demo")
+        else:
+            tracker = YoloByteTracker(str(args.weights), args.confidence, args.device)
+            with VideoReader(str(args.source), args.fps) as frames:
+                args.output.parent.mkdir(parents=True, exist_ok=True)
+                with args.output.open("x") as output:
+                    count = process(islice(frames, args.max_frames), tracker, output)
+                    if count == 0:
+                        raise ValueError("Video contains no decodable frames")
+    except (ImportError, OSError, ValueError, RuntimeError) as exc:
+        parser.exit(1, f"Error: {exc}\nInstall vision dependencies with pip install -e '.[vision]' if needed.\n")
+    print(f"Wrote {count} frames to {args.output}")
+    return 0
