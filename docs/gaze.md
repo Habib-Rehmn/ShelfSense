@@ -88,5 +88,27 @@ Core tests cover association ambiguity, missing/small faces, clipping, crop
 coordinates, invalid angles, axes, serialization and adapter calls. These tests
 use fakes for neural inference. A real checkpoint/video smoke test and empirical
 accuracy evaluation remain outstanding; no gaze accuracy is claimed.
-Installing OpenCV in the development sandbox was attempted but blocked by PyPI
-DNS/network access, so the real cascade smoke test also remains outstanding.
+The optional Docker vision smoke has validated the real OpenCV cascade on blank
+frames. Host package downloads remain restricted, but Docker builds can install
+the optional dependencies.
+
+To check L2CS dependency installation and adapter compatibility without a
+pretrained checkpoint, run:
+
+```bash
+docker build -f Dockerfile.vision-test --target gaze-report \
+  --output type=local,dest=outputs/gaze-validation .
+```
+
+This uses a generated, untrained ResNet50 checkpoint with controlled output heads
+and a synthetic crop. It checks the real model forward pass, RGB preprocessing,
+normalization, inference mode and angle conversion. The report records package
+versions and resolved upstream source revisions. It does not validate learned
+gaze predictions, image-coordinate signs on real faces or accuracy. See
+[deployment validation](deployment.md#optional-l2cs-dependency-and-adapter-smoke).
+
+The Docker check passed on Python 3.12.15 / PyTorch 2.14.1+cpu, with no broken
+requirements reported by `pip check`. The controlled heads produced yaw +20°
+and pitch −40° as expected. L2CS resolved to source revision
+`a4d8f7fa5436a2b2b9f088471623b552a85811bd`; these results establish adapter
+compatibility for that environment only.

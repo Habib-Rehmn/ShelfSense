@@ -15,3 +15,14 @@ RUN python tests/vision_smoke.py /models/yolo26n.pt
 
 FROM scratch AS report
 COPY --from=test /tmp/vision-smoke-report.json /vision-smoke-report.json
+
+FROM test AS gaze-test
+RUN apt-get update && apt-get install -y --no-install-recommends git \
+    && rm -rf /var/lib/apt/lists/*
+RUN pip install --no-cache-dir '.[gaze]'
+COPY tests/gaze_smoke.py ./tests/gaze_smoke.py
+RUN pip check && python tests/gaze_smoke.py
+
+FROM scratch AS gaze-report
+COPY --from=gaze-test /tmp/gaze-smoke-report.json /gaze-smoke-report.json
+COPY --from=gaze-test /tmp/vision-smoke-report.json /vision-smoke-report.json

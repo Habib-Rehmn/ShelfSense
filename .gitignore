@@ -14,6 +14,7 @@ outputs/
 data/
 models/
 *.pt
+*.pkl
 *.onnx
 .pytest_cache/
 project.md

@@ -120,3 +120,26 @@ The smoke passed on Linux x86_64 with Python 3.12.15, Ultralytics 8.4.174,
 PyTorch 2.14.1+cpu and OpenCV 4.14.0.94: ten frames and zero track observations.
 The tested `yolo26n.pt` SHA-256 was
 `9b09cc8bf347f0fc8a5f7657480587f25db09b34bf33b0652110fb03a8ad4fef`.
+
+## Optional L2CS dependency and adapter smoke
+
+```bash
+docker build -f Dockerfile.vision-test --target gaze-report \
+  --output type=local,dest=outputs/gaze-validation .
+```
+
+This extends the YOLO smoke environment with the declared gaze dependencies.
+It constructs an untrained ResNet50 with controlled output heads, saves a local
+state dictionary, loads it through `L2CSEstimator` and executes the real CPU
+forward pass. Assertions check RGB conversion, upstream 448×448 normalized
+input, disabled gradients, evaluation mode, output-head order and radian
+conversion. This is an adapter compatibility check, not pretrained gaze
+validation. The generated checkpoint stays temporary and `.pkl` files are
+ignored by Git.
+
+The exported `gaze-smoke-report.json` marks the weights as synthetic and
+untrained, records their hash and the installed environment, and includes Git
+source revisions from the installed L2CS and face-detection package metadata.
+The source dependencies still resolve from their upstream branches; a recorded
+revision is provenance, not a dependency lock. The export also contains the
+YOLO smoke report. Both reports stay under ignored `outputs/`.
