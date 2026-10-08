@@ -20,7 +20,7 @@ ResNet50). We load the local state dictionary with `weights_only=True`.
 No model checkpoint or footage is bundled with ShelfSense.
 
 ```bash
-shelfsense track data/shelf.mp4 --weights models/yolo11n.pt \
+shelfsense track data/shelf.mp4 --weights models/yolo26n.pt \
   --gaze-weights models/L2CSNet_gaze360.pkl --gaze-arch ResNet50 \
   --min-face-size 32 --output outputs/gaze.jsonl --device cpu
 ```

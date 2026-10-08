@@ -22,11 +22,14 @@ a detector or demonstrate tracking accuracy. Output files are never overwritten.
 python3 -m venv .venv
 source .venv/bin/activate
 pip install -e '.[vision]'
-shelfsense track data/shelf.mp4 --weights models/yolo11n.pt \
+shelfsense track data/shelf.mp4 --weights models/yolo26n.pt \
   --output outputs/tracks.jsonl --device cpu
 ```
 
-Supply a local COCO person-detection model and a constant-frame-rate video.
+Our baseline is **YOLO26n** (`yolo26n.pt`) for person detection, with ByteTrack
+for tracking. YOLO26 requires Ultralytics 8.4.0 or newer; see the
+[official model documentation](https://docs.ultralytics.com/models/yolo26/).
+Supply the local checkpoint and a constant-frame-rate video.
 Weights and footage are not bundled. The optional vision installation includes
 PyTorch through Ultralytics and can be large. Adapter configuration follows the
 [official tracking documentation](https://docs.ultralytics.com/modes/track/):
@@ -46,7 +49,7 @@ Install the optional adapter and supply local L2CS weights:
 
 ```bash
 pip install -e '.[vision,gaze]'
-shelfsense track data/shelf.mp4 --weights models/yolo11n.pt \
+shelfsense track data/shelf.mp4 --weights models/yolo26n.pt \
   --gaze-weights models/L2CSNet_gaze360.pkl \
   --output outputs/gaze.jsonl --max-frames 100
 ```
