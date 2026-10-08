@@ -1,8 +1,9 @@
 # ShelfSense
 
-Single-camera shelf attention research project. **Modules 1–3 of 6:** person
+Single-camera shelf attention research project. **Modules 1–4 of 6:** person
 tracking, frontal-face localization, an L2CS-Net gaze adapter, and supervised
-shelf-zone calibration. Temporal attention and analytics are planned.
+shelf-zone calibration, temporal smoothing and attention events. Database,
+API analytics and dashboard are planned.
 The detailed project outline is kept locally.
 
 ## Run the foundation
@@ -75,6 +76,21 @@ pass the resulting `--calibration` file to `track` alongside `--gaze-weights`.
 This is a supervised mapping baseline; shelf corners alone cannot locate gaze.
 See [calibration setup and limitations](docs/calibration.md).
 
+## Derive attention events
+
+Add `--attention` to a calibrated tracking run, or replay stored shelf targets:
+
+```bash
+PYTHONPATH=src python3 -m shelfsense attention outputs/targets.jsonl \
+  --calibration outputs/calibration.json --output outputs/attention.jsonl
+```
+
+This smooths coordinates using media time and confirms stable attention episodes
+after a configurable duration. Unknown gaze and observation gaps break episodes.
+The short Module 3 demo does not contain long enough looks to confirm attention;
+use the longer [Module 4 synthetic example](docs/attention.md) to see completed
+episodes. See that guide for thresholds, event fields and exact duration rules.
+
 ## Output contract
 
 Each JSONL line contains `schema_version`, `session_id`, `frame_index`,
@@ -83,6 +99,8 @@ Each JSONL line contains `schema_version`, `session_id`, `frame_index`,
 Pair session ID with track ID when storing shopper observations.
 Gaze-enabled runs add `image_size` and `gaze` in schema 2. Calibrated runs use
 schema 3, adding calibration metadata and `shelf_targets` with explicit unknowns.
+Attention-enabled output uses schema 4 and includes smoothed observations and
+events. It also appends session-end records; consumers must check `record_type`.
 Output is streamed with bounded pipeline memory. On an error, output may contain
 a partial run and must not be treated as complete. OpenCV can report decoding
 failure like end-of-file; successful completion does not prove clip integrity.
@@ -96,8 +114,10 @@ dependencies, model weights and a consented clip. No accuracy/FPS claims yet.
 Gaze adapter tests validate preprocessing and angle conversion using fakes;
 pretrained-model inference is not yet validated. Calibration/geometry and replay
 tests run without ML dependencies, including the synthetic mapping example.
-Real shelf-zone accuracy remains unmeasured. Annotated video, fixations, database
-and dashboard are not implemented.
+Real shelf-zone accuracy remains unmeasured. Temporal tests cover gaps, zone
+changes, session endings and event durations; the episode thresholds remain
+unvalidated on real footage. Annotated video, database, API analytics and
+dashboard are not implemented.
 
 ## Commit workflow
 

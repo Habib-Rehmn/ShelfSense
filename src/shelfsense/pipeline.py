@@ -9,6 +9,7 @@ import uuid
 from .tracking import Tracker
 from .gaze import GazeAnalyzer
 from .calibration import Calibration
+from .attention import AttentionEngine
 
 
 @dataclass(frozen=True)
@@ -20,9 +21,12 @@ class Frame:
 
 def process(frames: Iterable[Frame], tracker: Tracker, output: TextIO,
             session_id: str | None = None, gaze: GazeAnalyzer | None = None,
-            calibration: Calibration | None = None) -> int:
+            calibration: Calibration | None = None,
+            attention: AttentionEngine | None = None) -> int:
     if calibration is not None and gaze is None:
         raise ValueError("Shelf calibration requires gaze observations")
+    if attention is not None and calibration is None:
+        raise ValueError("Attention requires shelf calibration")
     session_id = session_id or str(uuid.uuid4())
     previous_index = -1
     previous_time = -1.0
@@ -48,7 +52,12 @@ def process(frames: Iterable[Frame], tracker: Tracker, output: TextIO,
                 record["schema_version"] = 3
                 record["calibration"] = calibration.summary()
                 record["shelf_targets"] = calibration.map_frame(observations, image_size)
+        if attention is not None:
+            record = attention.process(record)
         output.write(json.dumps(record, allow_nan=False) + "\n")
         previous_index, previous_time = frame.index, frame.timestamp_s
         count += 1
+    if attention is not None:
+        for summary in attention.finish():
+            output.write(json.dumps(summary, allow_nan=False) + "\n")
     return count

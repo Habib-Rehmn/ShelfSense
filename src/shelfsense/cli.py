@@ -13,6 +13,8 @@ from .gaze import GazeAnalyzer
 from .gaze_adapters import L2CSEstimator, OpenCVFaceDetector
 from .calibration import Calibration
 from .replay import map_gaze_file
+from .attention import AttentionConfig, AttentionEngine
+from .attention_replay import derive_attention
 
 
 class DemoTracker:
@@ -32,6 +34,10 @@ def main(argv=None):
     replay.add_argument("source", type=Path)
     replay.add_argument("--calibration", type=Path, required=True)
     replay.add_argument("--output", type=Path, required=True)
+    attention_parser = commands.add_parser("attention", help="Derive attention events from schema-3 JSONL")
+    attention_parser.add_argument("source", type=Path)
+    attention_parser.add_argument("--calibration", type=Path, required=True)
+    attention_parser.add_argument("--output", type=Path, required=True)
     track = commands.add_parser("track", help="Track people in a local CFR video")
     track.add_argument("source", type=Path)
     track.add_argument("--weights", type=Path, required=True)
@@ -45,6 +51,10 @@ def main(argv=None):
                        choices=["ResNet18", "ResNet34", "ResNet50", "ResNet101", "ResNet152"])
     track.add_argument("--min-face-size", type=int, default=32)
     track.add_argument("--calibration", type=Path, help="Labeled shelf calibration JSON")
+    track.add_argument("--attention", action="store_true", help="Enable smoothing and attention events")
+    for command in (track, attention_parser):
+        for name, field in AttentionConfig.__dataclass_fields__.items():
+            command.add_argument("--" + name.replace("_", "-"), type=float, default=field.default)
     args = parser.parse_args(argv)
     if args.output.exists():
         parser.error("Output already exists; choose a new path")
@@ -63,18 +73,27 @@ def main(argv=None):
             parser.error("--min-face-size must be positive")
         if args.calibration is not None and args.gaze_weights is None:
             parser.error("--calibration requires --gaze-weights")
+        if args.attention and args.calibration is None:
+            parser.error("--attention requires --calibration")
     try:
+        attention_config = None
+        if args.command in {"track", "attention"}:
+            attention_config = AttentionConfig(**{
+                name: getattr(args, name) for name in AttentionConfig.__dataclass_fields__})
         if args.command == "calibrate":
             calibration = Calibration.load(args.source)
             calibration.save(args.output)
             print(json.dumps(calibration.summary()))
             return 0
-        elif args.command == "map-gaze":
+        elif args.command in {"map-gaze", "attention"}:
             calibration = Calibration.load(args.calibration)
             with args.source.open() as source:
                 args.output.parent.mkdir(parents=True, exist_ok=True)
                 with args.output.open("x") as output:
-                    count = map_gaze_file(source, output, calibration)
+                    if args.command == "attention":
+                        count = derive_attention(source, output, AttentionEngine(calibration, attention_config))
+                    else:
+                        count = map_gaze_file(source, output, calibration)
         elif args.command == "demo":
             args.output.parent.mkdir(parents=True, exist_ok=True)
             with args.output.open("x") as output:
@@ -82,6 +101,7 @@ def main(argv=None):
                                 DemoTracker(), output, session_id="synthetic-demo")
         else:
             calibration = Calibration.load(args.calibration) if args.calibration is not None else None
+            attention = AttentionEngine(calibration, attention_config) if args.attention else None
             tracker = YoloByteTracker(str(args.weights), args.confidence, args.device)
             gaze = None
             if args.gaze_weights is not None:
@@ -91,7 +111,7 @@ def main(argv=None):
                 args.output.parent.mkdir(parents=True, exist_ok=True)
                 with args.output.open("x") as output:
                     count = process(islice(frames, args.max_frames), tracker, output, gaze=gaze,
-                                    calibration=calibration)
+                                    calibration=calibration, attention=attention)
                     if count == 0:
                         raise ValueError("Video contains no decodable frames")
     except (ImportError, OSError, ValueError, RuntimeError) as exc:
