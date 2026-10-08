@@ -14,3 +14,28 @@ jobs:
       - run: python -m unittest discover -s tests -v
         env:
           PYTHONPATH: src
+  analytics:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_DB: shelfsense_test
+          POSTGRES_USER: shelfsense
+          POSTGRES_PASSWORD: ci-only-password
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U shelfsense -d shelfsense_test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: pip install -e '.[analytics,test]'
+      - run: python -m unittest discover -s tests -v
+        env:
+          SHELFSENSE_TEST_POSTGRES_URL: postgresql://shelfsense:ci-only-password@localhost:5432/shelfsense_test

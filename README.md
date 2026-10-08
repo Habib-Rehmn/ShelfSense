@@ -1,9 +1,9 @@
 # ShelfSense
 
-Single-camera shelf attention research project. **Modules 1–4 of 6:** person
+Single-camera shelf attention research project. **Modules 1–5 of 6:** person
 tracking, frontal-face localization, an L2CS-Net gaze adapter, and supervised
-shelf-zone calibration, temporal smoothing and attention events. Database,
-API analytics and dashboard are planned.
+shelf-zone calibration, temporal smoothing, attention events, database ingestion,
+an analytics API and a dashboard. Evaluation and deployment polish are next.
 The detailed project outline is kept locally.
 
 ## Run the foundation
@@ -91,6 +91,32 @@ The short Module 3 demo does not contain long enough looks to confirm attention;
 use the longer [Module 4 synthetic example](docs/attention.md) to see completed
 episodes. See that guide for thresholds, event fields and exact duration rules.
 
+## Store and explore analytics
+
+After generating the longer Module 4 example:
+
+```bash
+PYTHONPATH=src python3 -m shelfsense init-db
+PYTHONPATH=src python3 -m shelfsense ingest outputs/module4-attention.jsonl \
+  --calibration configs/shelf.synthetic.json
+PYTHONPATH=src python3 -m shelfsense report --run-id YOUR_RUN_ID
+```
+
+Imports are atomic and idempotent. SQLite works without additional dependencies;
+PostgreSQL, FastAPI and Streamlit are available through the analytics extra:
+
+```bash
+pip install -e '.[analytics,test]'
+uvicorn shelfsense.api:create_app --factory --host 127.0.0.1 --port 8000
+# In a second terminal:
+streamlit run dashboard/app.py --server.address 127.0.0.1
+```
+
+The dashboard shows zone rankings, observed-gaze heatmaps, coverage and an
+attention funnel for one selected processing run. See [analytics setup and
+metric definitions](docs/analytics.md) for PostgreSQL configuration, endpoints
+and validation limits.
+
 ## Output contract
 
 Each JSONL line contains `schema_version`, `session_id`, `frame_index`,
@@ -116,8 +142,10 @@ pretrained-model inference is not yet validated. Calibration/geometry and replay
 tests run without ML dependencies, including the synthetic mapping example.
 Real shelf-zone accuracy remains unmeasured. Temporal tests cover gaps, zone
 changes, session endings and event durations; the episode thresholds remain
-unvalidated on real footage. Annotated video, database, API analytics and
-dashboard are not implemented.
+unvalidated on real footage. SQLite ingestion and analytics are integration-tested.
+FastAPI, Streamlit and PostgreSQL tests require optional dependencies/services;
+they are configured in CI but could not run in the network-restricted development
+sandbox. Annotated video, real-data evaluation and deployment polish remain.
 
 ## Commit workflow
 

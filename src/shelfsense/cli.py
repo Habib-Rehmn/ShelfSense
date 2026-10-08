@@ -2,6 +2,7 @@
 
 import argparse
 import json
+import os
 from itertools import islice
 from math import isfinite
 from pathlib import Path
@@ -25,6 +26,16 @@ class DemoTracker:
 def main(argv=None):
     parser = argparse.ArgumentParser(description="ShelfSense tracking pipeline")
     commands = parser.add_subparsers(dest="command", required=True)
+    initialize = commands.add_parser("init-db", help="Create analytics tables")
+    ingest = commands.add_parser("ingest", help="Validate and atomically import a completed attention export")
+    ingest.add_argument("source", type=Path)
+    ingest.add_argument("--calibration", type=Path, required=True)
+    report = commands.add_parser("report", help="Print analytics for one processing run")
+    report.add_argument("--run-id", required=True)
+    report.add_argument("--session-id")
+    for command in (initialize, ingest, report):
+        command.add_argument("--database-url", default=os.environ.get(
+            "SHELFSENSE_DATABASE_URL", "sqlite:///outputs/shelfsense.db"))
     demo = commands.add_parser("demo", help="Synthetic contract demo, no inference")
     demo.add_argument("--output", type=Path, required=True)
     calibrate = commands.add_parser("calibrate", help="Fit and validate labeled shelf calibration")
@@ -56,6 +67,26 @@ def main(argv=None):
         for name, field in AttentionConfig.__dataclass_fields__.items():
             command.add_argument("--" + name.replace("_", "-"), type=float, default=field.default)
     args = parser.parse_args(argv)
+    if args.command in {"init-db", "ingest", "report"}:
+        from .storage import Store
+        from .ingestion import read_export
+        try:
+            store = Store(args.database_url)
+            if args.command == "init-db":
+                store.initialize()
+                result = {"initialized": True}
+            elif args.command == "ingest":
+                with args.source.open() as source:
+                    data = read_export(source, Calibration.load(args.calibration))
+                result = store.ingest(data)
+            else:
+                result = store.report(args.run_id, args.session_id)
+            print(json.dumps(result, allow_nan=False))
+            return 0
+        except (ValueError, KeyError, ImportError) as exc:
+            parser.exit(1, f"Error: {exc}\n")
+        except Exception:
+            parser.exit(1, "Storage or input unavailable. Check the input path, database connection and init-db setup.\n")
     if args.output.exists():
         parser.error("Output already exists; choose a new path")
     if args.command == "track":

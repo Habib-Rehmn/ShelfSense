@@ -12,6 +12,8 @@ dependencies = []
 [project.optional-dependencies]
 vision = ["ultralytics>=8.4.0,<9", "opencv-python>=4.10,<5", "lap>=0.5.12,<0.6"]
 gaze = ["torch>=2.2,<3", "l2cs @ git+https://github.com/Ahmednull/L2CS-Net.git@main"]
+analytics = ["psycopg[binary]>=3.2,<4", "fastapi>=0.115,<1", "uvicorn>=0.30,<1", "streamlit>=1.40,<2"]
+test = ["httpx>=0.27,<1"]
 
 [project.scripts]
 shelfsense = "shelfsense.cli:main"
