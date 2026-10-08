@@ -92,3 +92,31 @@ Host Python package downloads and direct Docker Compose runtime access remain
 restricted. The complete multi-service PostgreSQL 16 deployment must still pass
 the configured CI job or a run on your machine; a successful build is not proof
 that Compose orchestration has run.
+
+## Optional YOLO26n CPU smoke
+
+Run the actual tracking CLI with pretrained YOLO26n on ten generated blank video
+frames, independently of the analytics image:
+
+```bash
+docker build -f Dockerfile.vision-test --target report \
+  --output type=local,dest=outputs/vision-validation .
+```
+
+This build downloads CPU PyTorch, the vision dependencies and the official
+YOLO26n weights. It checks OpenCV video writing/reading, the frontal-face
+detector's empty-frame behavior, model loading, inference, frame counts,
+timestamps and session identity. The exported `vision-smoke-report.json` records
+installed package versions and the weights' SHA-256. Weights remain in the build
+cache; generated reports are ignored by Git. Dependency versions resolve at build
+time, so this is not a locked vision environment. Add `--no-cache` to force a new
+test execution and reinstall dependencies instead of reusing cached build steps.
+
+Blank frames do not test person detection accuracy, association of track IDs,
+occlusions, L2CS inference or shelf attention. Those checks still require a local
+video, a compatible L2CS checkpoint and held-out annotations.
+
+The smoke passed on Linux x86_64 with Python 3.12.15, Ultralytics 8.4.174,
+PyTorch 2.14.1+cpu and OpenCV 4.14.0.94: ten frames and zero track observations.
+The tested `yolo26n.pt` SHA-256 was
+`9b09cc8bf347f0fc8a5f7657480587f25db09b34bf33b0652110fb03a8ad4fef`.

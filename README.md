@@ -167,8 +167,11 @@ failure like end-of-file; successful completion does not prove clip integrity.
 
 Unit tests cover pipeline contracts, CLI behavior, adapter arguments and video
 resource cleanup using fakes. The synthetic CLI is also runnable end to end.
-Real YOLO/ByteTrack inference needs a separate smoke test with installed vision
-dependencies, model weights and a consented clip. No accuracy/FPS claims yet.
+Pretrained YOLO26n CPU inference and OpenCV video I/O pass the optional Docker
+smoke on ten blank synthetic frames. This checks the actual tracking CLI, frame
+counts, timestamps and session identity. Person detection, ByteTrack identity
+continuity and real-video performance still need a consented clip. No accuracy/FPS
+claims yet.
 Gaze adapter tests validate preprocessing and angle conversion using fakes;
 pretrained-model inference is not yet validated. Calibration/geometry and replay
 tests run without ML dependencies, including the synthetic mapping example.
@@ -179,7 +182,7 @@ FastAPI, Streamlit and PostgreSQL tests require optional dependencies/services.
 Docker test stages install the hashed analytics lock and run integration checks;
 CI also validates PostgreSQL 16 and full Compose startup. Host-only tests skip
 unavailable extras. See [validation details](docs/deployment.md).
-Real-data evaluation, model-weight smoke tests and annotated video remain.
+Real-data evaluation, L2CS model-weight validation and annotated video remain.
 
 ## Commit workflow
 

@@ -1,0 +1,17 @@
+FROM python:3.12-slim-bookworm@sha256:34386ef0cb081344d7ec1c103ba398e6e9f64e9ab3a1509accc92a4e24a07258 AS test
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1 \
+    YOLO_CONFIG_DIR=/tmp/shelfsense-yolo
+WORKDIR /app
+RUN apt-get update && apt-get install -y --no-install-recommends libgl1 libglib2.0-0 \
+    && rm -rf /var/lib/apt/lists/*
+RUN pip install --no-cache-dir torch torchvision --index-url https://download.pytorch.org/whl/cpu
+COPY pyproject.toml README.md ./
+COPY src ./src
+RUN pip install --no-cache-dir '.[vision]'
+RUN mkdir /models && python -c "from urllib.request import urlretrieve; urlretrieve('https://github.com/ultralytics/assets/releases/download/v8.4.0/yolo26n.pt', '/models/yolo26n.pt')"
+COPY tests/vision_smoke.py ./tests/vision_smoke.py
+RUN python tests/vision_smoke.py /models/yolo26n.pt
+
+FROM scratch AS report
+COPY --from=test /tmp/vision-smoke-report.json /vision-smoke-report.json
