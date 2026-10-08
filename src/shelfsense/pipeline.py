@@ -8,6 +8,7 @@ import uuid
 
 from .tracking import Tracker
 from .gaze import GazeAnalyzer
+from .calibration import Calibration
 
 
 @dataclass(frozen=True)
@@ -18,7 +19,10 @@ class Frame:
 
 
 def process(frames: Iterable[Frame], tracker: Tracker, output: TextIO,
-            session_id: str | None = None, gaze: GazeAnalyzer | None = None) -> int:
+            session_id: str | None = None, gaze: GazeAnalyzer | None = None,
+            calibration: Calibration | None = None) -> int:
+    if calibration is not None and gaze is None:
+        raise ValueError("Shelf calibration requires gaze observations")
     session_id = session_id or str(uuid.uuid4())
     previous_index = -1
     previous_time = -1.0
@@ -36,7 +40,14 @@ def process(frames: Iterable[Frame], tracker: Tracker, output: TextIO,
             "tracks": [asdict(track) for track in tracks],
         }
         if gaze is not None:
-            record["gaze"] = [asdict(observation) for observation in gaze.observe(frame.image, tracks)]
+            observations = gaze.observe(frame.image, tracks)
+            image_size = (frame.image.shape[1], frame.image.shape[0])
+            record["image_size"] = image_size
+            record["gaze"] = [asdict(observation) for observation in observations]
+            if calibration is not None:
+                record["schema_version"] = 3
+                record["calibration"] = calibration.summary()
+                record["shelf_targets"] = calibration.map_frame(observations, image_size)
         output.write(json.dumps(record, allow_nan=False) + "\n")
         previous_index, previous_time = frame.index, frame.timestamp_s
         count += 1

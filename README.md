@@ -1,8 +1,9 @@
 # ShelfSense
 
-Single-camera shelf attention research project. **Modules 1–2 of 6:** person
-tracking, frontal-face localization and an L2CS-Net gaze adapter. Shelf mapping
-and analytics are planned. The detailed project outline is kept locally.
+Single-camera shelf attention research project. **Modules 1–3 of 6:** person
+tracking, frontal-face localization, an L2CS-Net gaze adapter, and supervised
+shelf-zone calibration. Temporal attention and analytics are planned.
+The detailed project outline is kept locally.
 
 ## Run the foundation
 
@@ -58,12 +59,30 @@ See [gaze setup and coordinate conventions](docs/gaze.md) for model sources,
 limitations and the output schema. The OpenCV face detector is a frontal-face
 baseline; missing and ambiguous observations remain unknown.
 
+## Calibrate shelf zones
+
+Try the complete calibration and mapping path with synthetic inputs:
+
+```bash
+PYTHONPATH=src python3 -m shelfsense calibrate configs/shelf.synthetic.json \
+  --output outputs/calibration.json
+PYTHONPATH=src python3 -m shelfsense map-gaze examples/gaze.synthetic.jsonl \
+  --calibration outputs/calibration.json --output outputs/targets.jsonl
+```
+
+For real video, collect labeled gaze/target samples for your fixed camera and
+pass the resulting `--calibration` file to `track` alongside `--gaze-weights`.
+This is a supervised mapping baseline; shelf corners alone cannot locate gaze.
+See [calibration setup and limitations](docs/calibration.md).
+
 ## Output contract
 
 Each JSONL line contains `schema_version`, `session_id`, `frame_index`,
 `timestamp_s`, and `tracks`. Each track has `track_id`, `bbox` (pixel coordinates
 `[x1, y1, x2, y2]`) and `confidence`. Empty frames are preserved with `tracks: []`.
 Pair session ID with track ID when storing shopper observations.
+Gaze-enabled runs add `image_size` and `gaze` in schema 2. Calibrated runs use
+schema 3, adding calibration metadata and `shelf_targets` with explicit unknowns.
 Output is streamed with bounded pipeline memory. On an error, output may contain
 a partial run and must not be treated as complete. OpenCV can report decoding
 failure like end-of-file; successful completion does not prove clip integrity.
@@ -75,8 +94,10 @@ resource cleanup using fakes. The synthetic CLI is also runnable end to end.
 Real YOLO/ByteTrack inference needs a separate smoke test with installed vision
 dependencies, model weights and a consented clip. No accuracy/FPS claims yet.
 Gaze adapter tests validate preprocessing and angle conversion using fakes;
-pretrained-model inference is not yet validated. Annotated video, shelf targets,
-fixations, database and dashboard are not implemented.
+pretrained-model inference is not yet validated. Calibration/geometry and replay
+tests run without ML dependencies, including the synthetic mapping example.
+Real shelf-zone accuracy remains unmeasured. Annotated video, fixations, database
+and dashboard are not implemented.
 
 ## Commit workflow
 
