@@ -1,12 +1,22 @@
 # ShelfSense
 
-Single-camera shelf attention research project. **Modules 1–5 of 6:** person
+Single-camera shelf attention research project. **Six implementation modules:** person
 tracking, frontal-face localization, an L2CS-Net gaze adapter, and supervised
 shelf-zone calibration, temporal smoothing, attention events, database ingestion,
-an analytics API and a dashboard. Evaluation and deployment polish are next.
+an analytics API, a dashboard, held-out evaluation tools and Docker deployment.
+This is a research baseline; real-video accuracy remains unmeasured.
 The detailed project outline is kept locally.
 
 ## Run the foundation
+
+Run the complete synthetic workflow, including database ingestion and evaluation:
+
+```bash
+PYTHONPATH=src python3 -m shelfsense smoke --output-dir outputs/smoke-001
+```
+
+It writes analytics, raw/smoothed evaluation, replay timings and an environment
+manifest. The output directory must be new. No neural models run in this check.
 
 Python 3.11 or newer. No dependencies or downloads are needed for the demo:
 
@@ -117,6 +127,28 @@ attention funnel for one selected processing run. See [analytics setup and
 metric definitions](docs/analytics.md) for PostgreSQL configuration, endpoints
 and validation limits.
 
+## Evaluate and deploy
+
+```bash
+PYTHONPATH=src python3 -m shelfsense evaluate outputs/attention.jsonl \
+  --labels data/heldout-labels.json --calibration data/calibration.json \
+  --kind smoothed --output outputs/evaluation.json
+```
+
+Evaluation reports coverage, all-label accuracy, macro F1, confusion matrices,
+and point/angular errors when suitable labels exist. Missing predictions count
+as abstentions. See [evaluation and experiment records](docs/evaluation.md).
+
+Docker Compose starts PostgreSQL, initialization, the API and dashboard. Set
+`SHELFSENSE_POSTGRES_PASSWORD` in a local `.env`, then run:
+
+```bash
+docker compose up --build --detach --wait api dashboard
+```
+
+See [deployment instructions](docs/deployment.md) for import commands, storage,
+runtime validation and reproducibility limits.
+
 ## Output contract
 
 Each JSONL line contains `schema_version`, `session_id`, `frame_index`,
@@ -143,9 +175,11 @@ tests run without ML dependencies, including the synthetic mapping example.
 Real shelf-zone accuracy remains unmeasured. Temporal tests cover gaps, zone
 changes, session endings and event durations; the episode thresholds remain
 unvalidated on real footage. SQLite ingestion and analytics are integration-tested.
-FastAPI, Streamlit and PostgreSQL tests require optional dependencies/services;
-they are configured in CI but could not run in the network-restricted development
-sandbox. Annotated video, real-data evaluation and deployment polish remain.
+FastAPI, Streamlit and PostgreSQL tests require optional dependencies/services.
+Docker test stages install the hashed analytics lock and run integration checks;
+CI also validates PostgreSQL 16 and full Compose startup. Host-only tests skip
+unavailable extras. See [validation details](docs/deployment.md).
+Real-data evaluation, model-weight smoke tests and annotated video remain.
 
 ## Commit workflow
 

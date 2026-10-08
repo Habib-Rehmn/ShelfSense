@@ -26,6 +26,17 @@ class DemoTracker:
 def main(argv=None):
     parser = argparse.ArgumentParser(description="ShelfSense tracking pipeline")
     commands = parser.add_subparsers(dest="command", required=True)
+    evaluate_parser = commands.add_parser("evaluate", help="Evaluate labeled held-out shelf observations")
+    evaluate_parser.add_argument("source", type=Path)
+    evaluate_parser.add_argument("--labels", type=Path, required=True)
+    evaluate_parser.add_argument("--calibration", type=Path, required=True)
+    evaluate_parser.add_argument("--kind", choices=["raw", "smoothed"], default="raw")
+    evaluate_parser.add_argument("--output", type=Path, required=True)
+    manifest = commands.add_parser("manifest", help="Fingerprint experiment inputs and installed package versions")
+    manifest.add_argument("inputs", nargs="*", type=Path)
+    manifest.add_argument("--output", type=Path, required=True)
+    smoke = commands.add_parser("smoke", help="Run the synthetic pipeline through database and evaluation")
+    smoke.add_argument("--output-dir", type=Path, required=True)
     initialize = commands.add_parser("init-db", help="Create analytics tables")
     ingest = commands.add_parser("ingest", help="Validate and atomically import a completed attention export")
     ingest.add_argument("source", type=Path)
@@ -67,6 +78,14 @@ def main(argv=None):
         for name, field in AttentionConfig.__dataclass_fields__.items():
             command.add_argument("--" + name.replace("_", "-"), type=float, default=field.default)
     args = parser.parse_args(argv)
+    if args.command == "smoke":
+        from .smoke import run_smoke
+        try:
+            result = run_smoke(args.output_dir)
+        except (ValueError, OSError, RuntimeError) as exc:
+            parser.exit(1, f"Smoke test failed: {exc}\n")
+        print(f"Synthetic smoke passed: {result['frames']} frames; report at {args.output_dir / 'report.json'}")
+        return 0
     if args.command in {"init-db", "ingest", "report"}:
         from .storage import Store
         from .ingestion import read_export
@@ -111,7 +130,21 @@ def main(argv=None):
         if args.command in {"track", "attention"}:
             attention_config = AttentionConfig(**{
                 name: getattr(args, name) for name in AttentionConfig.__dataclass_fields__})
-        if args.command == "calibrate":
+        if args.command in {"evaluate", "manifest"}:
+            if args.command == "evaluate":
+                from .evaluation import evaluate
+                with args.source.open() as source:
+                    result = evaluate(source, json.loads(args.labels.read_text()),
+                                      Calibration.load(args.calibration), args.kind)
+            else:
+                from .provenance import environment_manifest
+                result = environment_manifest(args.inputs)
+            args.output.parent.mkdir(parents=True, exist_ok=True)
+            with args.output.open("x") as output:
+                json.dump(result, output, indent=2, allow_nan=False)
+            print(f"Wrote {args.command} report to {args.output}")
+            return 0
+        elif args.command == "calibrate":
             calibration = Calibration.load(args.source)
             calibration.save(args.output)
             print(json.dumps(calibration.summary()))

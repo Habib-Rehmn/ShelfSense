@@ -14,6 +14,13 @@ jobs:
       - run: python -m unittest discover -s tests -v
         env:
           PYTHONPATH: src
+      - run: PYTHONPATH=src python -m shelfsense smoke --output-dir outputs/ci-smoke
+      - uses: actions/upload-artifact@v4
+        with:
+          name: synthetic-smoke-python-${{ matrix.python-version }}
+          path: |
+            outputs/ci-smoke/report.json
+            outputs/ci-smoke/manifest.json
   analytics:
     runs-on: ubuntu-latest
     services:
@@ -35,7 +42,35 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
-      - run: pip install -e '.[analytics,test]'
+      - run: pip install --require-hashes -r requirements/analytics.lock
+      - run: pip install --no-deps -e .
       - run: python -m unittest discover -s tests -v
         env:
           SHELFSENSE_TEST_POSTGRES_URL: postgresql://shelfsense:ci-only-password@localhost:5432/shelfsense_test
+  containers:
+    runs-on: ubuntu-latest
+    env:
+      SHELFSENSE_POSTGRES_PASSWORD: ci-only-container-password
+    steps:
+      - uses: actions/checkout@v4
+      - run: mkdir -p outputs data
+      - run: docker compose config --quiet
+      - run: docker compose up --build --detach --wait api dashboard
+      - run: >-
+          docker compose run --rm cli sh -c
+          'python -m shelfsense smoke --output-dir outputs/ci-smoke &&
+          python -m shelfsense ingest outputs/ci-smoke/attention.jsonl --calibration configs/shelf.synthetic.json'
+      - run: |
+          python - <<'PY'
+          import json
+          from urllib.request import urlopen
+          runs = json.load(urlopen('http://127.0.0.1:8000/runs', timeout=10))
+          assert len(runs) == 1
+          report = json.load(urlopen('http://127.0.0.1:8000/analytics?run_id=' + runs[0]['run_id'], timeout=10))
+          assert abs(report['total_attention_s'] - 1.8) < 1e-8
+          assert urlopen('http://127.0.0.1:8501/_stcore/health', timeout=10).status == 200
+          PY
+      - if: always()
+        run: docker compose logs --no-color
+      - if: always()
+        run: docker compose down --volumes

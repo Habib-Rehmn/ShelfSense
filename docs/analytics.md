@@ -149,8 +149,8 @@ TestClient and Streamlit AppTest, and a real PostgreSQL integration test runs
 when `SHELFSENSE_TEST_POSTGRES_URL` is configured. The analytics CI job installs
 the extras and supplies PostgreSQL 16 so those tests can run without skips.
 
-In the development sandbox, PyPI DNS access is blocked, the optional packages
-are unavailable, and no PostgreSQL server is running. HTTP, Streamlit and
-PostgreSQL runtime tests therefore remain pending locally; SQLite and the core
-pipeline are verified. CI results must be checked after pushing. Real model
-inference and real-world accuracy still need weights and consented footage.
+Host PyPI DNS access is blocked, but the permitted Docker builder can install
+dependencies. Module 6 adds a hashed analytics lock and build stages for API,
+Streamlit and PostgreSQL integration tests. See [deployment validation](deployment.md)
+for the current scope. Check the complete PostgreSQL 16 Compose CI results after
+pushing. Real inference and accuracy still need weights and consented footage.
