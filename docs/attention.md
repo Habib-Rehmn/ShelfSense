@@ -26,7 +26,7 @@ For inference and temporal processing in a single pass:
 
 ```bash
 shelfsense track data/shelf.mp4 --weights models/yolo26n.pt \
-  --gaze-weights models/L2CSNet_gaze360.pkl \
+  --gaze-backend l2cs --gaze-weights models/L2CSNet_gaze360.pkl \
   --calibration outputs/calibration.json --attention \
   --output outputs/attention.jsonl
 ```

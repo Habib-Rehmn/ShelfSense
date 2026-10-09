@@ -32,4 +32,4 @@ The PostgreSQL test stage uses Debian's PostgreSQL 15; Compose and CI additional
 target PostgreSQL 16. Test-only database binaries are excluded from the runtime image.
 
 The vision/gaze environment needs its own validated lock, model file hashes,
-and an exact L2CS Git revision. It is not part of the analytics image.
+and exact Gaze-LLE and DINOv2 source revisions (plus L2CS if using the legacy extra). It is not part of the analytics image.

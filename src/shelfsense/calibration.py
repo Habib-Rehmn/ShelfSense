@@ -33,15 +33,23 @@ class Calibration:
     def __init__(self, document):
         # Persist the labeled samples, refit deterministically when loading, and
         # hash all input settings so every result identifies its calibration.
-        if not isinstance(document, dict) or document.get("schema_version") != 1:
-            raise ValueError("Unsupported calibration schema; expected version 1")
-        required = {"schema_version", "shelf_id", "image_size", "corners", "zones", "samples"}
+        if not isinstance(document, dict) or document.get("schema_version") not in (1, 2):
+            raise ValueError("Unsupported calibration schema; expected version 1 or 2")
+        self.image_targets = document["schema_version"] == 2
+        required = {"schema_version", "shelf_id", "image_size", "corners", "zones"}
+        if not self.image_targets:
+            required.add("samples")
         if set(document) != required:
             raise ValueError(f"Calibration requires exactly: {', '.join(sorted(required))}")
         if not isinstance(document["shelf_id"], str) or not document["shelf_id"].strip():
             raise ValueError("shelf_id must be a nonempty string")
         self.geometry = ShelfGeometry(document["image_size"], document["corners"])
         self.zones = validate_zones(document["zones"])
+        if self.image_targets:
+            self._json = json.dumps(document, sort_keys=True, allow_nan=False)
+            self.calibration_id = sha256(self._json.encode()).hexdigest()
+            self.shelf_id = document["shelf_id"]
+            return
         samples = document["samples"]
         if not isinstance(samples, list) or len(samples) < 6:
             raise ValueError("Collect at least six labeled calibration samples")
@@ -91,6 +99,9 @@ class Calibration:
             output.write(json.dumps(json.loads(self._json), indent=2) + "\n")
 
     def summary(self):
+        if self.image_targets:
+            return {"calibration_id": self.calibration_id, "shelf_id": self.shelf_id,
+                    "method": "image_target_homography_v1", "image_size": self.geometry.image_size}
         return {"calibration_id": self.calibration_id, "shelf_id": self.shelf_id,
                 "method": "supervised_affine_v1", "image_size": self.geometry.image_size,
                 "fit_rmse": self.fit_rmse, "fit_rmse_is_training_error": True}
@@ -101,6 +112,15 @@ class Calibration:
             raise ValueError("Frame resolution differs from shelf calibration")
         if observation.status != "estimated":
             return ShelfTarget(track_id, "unknown", "gaze_unavailable")
+        if self.image_targets:
+            try:
+                x, y = finite_vector(observation.target_image, 2, "target_image")
+                if not (0 <= x <= image_size[0] and 0 <= y <= image_size[1]):
+                    raise ValueError("Target is outside the image")
+                point = self.geometry.to_shelf((x, y))
+            except (ValueError, AttributeError):
+                return ShelfTarget(track_id, "unknown", "invalid_gaze")
+            return self._map_point(track_id, point)
         try:
             row = features(observation.face_bbox, observation.yaw_rad, observation.pitch_rad, image_size)
         except ValueError:
@@ -109,7 +129,9 @@ class Calibration:
         if any(value < low - 1e-8 or value > high + 1e-8
                for value, low, high in zip(row, self.minimum, self.maximum)):
             return ShelfTarget(track_id, "unknown", "outside_calibration")
-        point = self._predict(row)
+        return self._map_point(track_id, self._predict(row))
+
+    def _map_point(self, track_id, point):
         if any(value < -1e-8 or value > 1 + 1e-8 for value in point):
             return ShelfTarget(track_id, "unknown", "off_shelf", shelf_point=point)
         point = tuple(max(0., min(1., value)) for value in point)

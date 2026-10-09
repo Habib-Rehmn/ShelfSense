@@ -4,6 +4,7 @@ import json
 from math import isfinite
 
 from .gaze import GazeObservation
+from .gazelle import ImageGazeObservation
 
 
 def map_gaze_file(source, output, calibration):
@@ -24,7 +25,13 @@ def map_gaze_file(source, output, calibration):
             prior_index, prior_time = previous.get(session, (-1, -1))
             if index <= prior_index or timestamp <= prior_time:
                 raise ValueError("Frame indices and timestamps must increase within a session")
-            observations = [GazeObservation(**value) for value in record["gaze"]]
+            kind = record.get("gaze_kind", "angles")
+            if kind not in {"angles", "image_target"}:
+                raise ValueError("Unsupported gaze kind")
+            if (kind == "image_target") != calibration.image_targets:
+                raise ValueError("Gaze kind does not match calibration method")
+            observation_type = ImageGazeObservation if kind == "image_target" else GazeObservation
+            observations = [observation_type(**value) for value in record["gaze"]]
             ids = [observation.track_id for observation in observations]
             if any(type(i) is not int or i < 0 for i in ids) or len(set(ids)) != len(ids):
                 raise ValueError("Invalid or duplicate gaze track IDs")

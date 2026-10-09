@@ -11,6 +11,8 @@ from .pipeline import Frame, process
 from .tracking import Track, YoloByteTracker
 from .video import VideoReader
 from .gaze import GazeAnalyzer
+from .gazelle import SceneGazeAnalyzer
+from .gazelle_adapters import GazelleEstimator, PoseHeadDetector
 from .gaze_adapters import L2CSEstimator, OpenCVFaceDetector
 from .calibration import Calibration
 from .replay import map_gaze_file
@@ -68,7 +70,11 @@ def main(argv=None):
     track.add_argument("--confidence", type=float, default=0.1)
     track.add_argument("--fps", type=float)
     track.add_argument("--max-frames", type=int)
-    track.add_argument("--gaze-weights", type=Path, help="Enable L2CS gaze with local weights")
+    track.add_argument("--gaze-weights", type=Path, help="Enable gaze using local decoder weights")
+    track.add_argument("--gaze-backend", choices=["gazelle", "l2cs"], default="gazelle")
+    track.add_argument("--head-weights", type=Path, help="Local yolo26n-pose.pt for head localization")
+    track.add_argument("--min-head-size", type=int, default=16)
+    track.add_argument("--in-frame-threshold", type=float, default=.5)
     track.add_argument("--gaze-arch", default="ResNet50",
                        choices=["ResNet18", "ResNet34", "ResNet50", "ResNet101", "ResNet152"])
     track.add_argument("--min-face-size", type=int, default=32)
@@ -119,6 +125,13 @@ def main(argv=None):
             parser.error("--max-frames must be positive")
         if args.gaze_weights is not None and not args.gaze_weights.is_file():
             parser.error("Gaze weights must be an existing local file")
+        if args.gaze_weights is not None and args.gaze_backend == "gazelle":
+            if args.head_weights is None or not args.head_weights.is_file():
+                parser.error("Gaze-LLE requires --head-weights pointing to local yolo26n-pose.pt")
+        if args.min_head_size <= 0:
+            parser.error("--min-head-size must be positive")
+        if not isfinite(args.in_frame_threshold) or not 0 <= args.in_frame_threshold <= 1:
+            parser.error("--in-frame-threshold must be in [0, 1]")
         if args.min_face_size <= 0:
             parser.error("--min-face-size must be positive")
         if args.calibration is not None and args.gaze_weights is None:
@@ -165,12 +178,19 @@ def main(argv=None):
                                 DemoTracker(), output, session_id="synthetic-demo")
         else:
             calibration = Calibration.load(args.calibration) if args.calibration is not None else None
+            if calibration is not None and calibration.image_targets != (args.gaze_backend == "gazelle"):
+                raise ValueError("Gaze-LLE requires schema-2 shelf geometry; L2CS requires schema-1 labeled calibration")
             attention = AttentionEngine(calibration, attention_config) if args.attention else None
             tracker = YoloByteTracker(str(args.weights), args.confidence, args.device)
             gaze = None
             if args.gaze_weights is not None:
-                gaze = GazeAnalyzer(OpenCVFaceDetector(), L2CSEstimator(
-                    str(args.gaze_weights), args.device, args.gaze_arch), args.min_face_size)
+                if args.gaze_backend == "gazelle":
+                    gaze = SceneGazeAnalyzer(PoseHeadDetector(str(args.head_weights), args.device),
+                        GazelleEstimator(str(args.gaze_weights), args.device, args.in_frame_threshold),
+                        args.min_head_size)
+                else:
+                    gaze = GazeAnalyzer(OpenCVFaceDetector(), L2CSEstimator(
+                        str(args.gaze_weights), args.device, args.gaze_arch), args.min_face_size)
             with VideoReader(str(args.source), args.fps) as frames:
                 args.output.parent.mkdir(parents=True, exist_ok=True)
                 with args.output.open("x") as output:

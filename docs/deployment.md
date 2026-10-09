@@ -71,7 +71,7 @@ The image always saves its installed package snapshot at
 For a reproducible release, retain the validated lock, pin the PostgreSQL image
 digest and record the built application image digest, and retain dataset/model hashes
 and experiment manifests. The vision/gaze environment requires a separate lock
-and an exact L2CS source revision. Do not treat the current floating Git `main`
+and exact Gaze-LLE/DINOv2 source revisions (or L2CS for legacy runs). Do not treat the current floating Git `main`
 dependency as a pinned model environment.
 
 ## CI and local verification
@@ -143,3 +143,9 @@ source revisions from the installed L2CS and face-detection package metadata.
 The source dependencies still resolve from their upstream branches; a recorded
 revision is provenance, not a dependency lock. The export also contains the
 YOLO smoke report. Both reports stay under ignored `outputs/`.
+
+## Gaze-LLE default backend
+
+See [Gaze-LLE setup and pretrained CPU validation](gazelle.md). The gaze extra
+now installs Gaze-LLE; the L2CS smoke stage explicitly installs the legacy
+`l2cs` extra. Analytics containers remain separate from vision inference.

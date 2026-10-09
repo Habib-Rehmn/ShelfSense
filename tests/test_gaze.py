@@ -161,7 +161,7 @@ class CliGazeTests(unittest.TestCase):
                  patch("shelfsense.cli.L2CSEstimator", return_value=estimator) as l2cs, \
                  patch("shelfsense.cli.VideoReader", return_value=video), redirect_stdout(io.StringIO()):
                 self.assertEqual(main(["track", str(source), "--weights", str(weights),
-                                       "--gaze-weights", str(gaze_weights), "--output", str(output)]), 0)
+                                       "--gaze-weights", str(gaze_weights), "--gaze-backend", "l2cs", "--output", str(output)]), 0)
             l2cs.assert_called_once_with(str(gaze_weights), "cpu", "ResNet50")
             row = json.loads(output.read_text())
             self.assertEqual(row["gaze"][0]["yaw_rad"], .1)

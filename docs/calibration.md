@@ -1,5 +1,8 @@
 # Module 3: shelf calibration and zone mapping
 
+This guide describes the legacy L2CS path. The default is now
+[Gaze-LLE with image-target shelf mapping](gazelle.md).
+
 This module uses a **supervised affine baseline**, not a reconstructed 3D gaze
 ray. A homography turns labeled shelf pixels into normalized shelf coordinates.
 A separate fitted model predicts those coordinates from face-center position
@@ -49,7 +52,7 @@ rank-deficient data rather than silently picking arbitrary coefficients.
 
 ```bash
 shelfsense track data/shelf.mp4 --weights models/yolo26n.pt \
-  --gaze-weights models/L2CSNet_gaze360.pkl \
+  --gaze-backend l2cs --gaze-weights models/L2CSNet_gaze360.pkl \
   --calibration outputs/calibration.json --output outputs/shelf.jsonl
 ```
 

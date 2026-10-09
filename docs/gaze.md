@@ -1,5 +1,8 @@
 # Module 2: faces and gaze
 
+This guide describes the legacy L2CS path. The default is now
+[Gaze-LLE with image-target shelf mapping](gazelle.md).
+
 The tracking CLI now accepts `--gaze-weights`, `--gaze-arch` and
 `--min-face-size` (default 32 pixels). Without gaze weights, schema 1 tracking
 output remains unchanged. With weights, each frame uses schema 2 and adds a
@@ -7,7 +10,7 @@ output remains unchanged. With weights, each frame uses schema 2 and adds a
 
 ## Setup
 
-Use Python 3.11+ and install `pip install -e '.[vision,gaze]'`. This extra installs
+Use Python 3.11+ and install `pip install -e '.[vision,l2cs]'`. This extra installs
 the official [L2CS-Net repository](https://github.com/Ahmednull/L2CS-Net), including
 its transitive dependencies. The source dependency currently follows `main`;
 this is not a reproducibility lock. Record the installed source revision and
@@ -21,7 +24,7 @@ No model checkpoint or footage is bundled with ShelfSense.
 
 ```bash
 shelfsense track data/shelf.mp4 --weights models/yolo26n.pt \
-  --gaze-weights models/L2CSNet_gaze360.pkl --gaze-arch ResNet50 \
+  --gaze-backend l2cs --gaze-weights models/L2CSNet_gaze360.pkl --gaze-arch ResNet50 \
   --min-face-size 32 --output outputs/gaze.jsonl --device cpu
 ```
 

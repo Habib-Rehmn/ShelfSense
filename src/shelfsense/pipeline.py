@@ -25,6 +25,9 @@ def process(frames: Iterable[Frame], tracker: Tracker, output: TextIO,
             attention: AttentionEngine | None = None) -> int:
     if calibration is not None and gaze is None:
         raise ValueError("Shelf calibration requires gaze observations")
+    if calibration is not None and calibration.image_targets != (
+            getattr(gaze, "observation_kind", None) == "image_target"):
+        raise ValueError("Gaze kind does not match calibration method")
     if attention is not None and calibration is None:
         raise ValueError("Attention requires shelf calibration")
     session_id = session_id or str(uuid.uuid4())
@@ -47,6 +50,11 @@ def process(frames: Iterable[Frame], tracker: Tracker, output: TextIO,
             observations = gaze.observe(frame.image, tracks)
             image_size = (frame.image.shape[1], frame.image.shape[0])
             record["image_size"] = image_size
+            if getattr(gaze, "observation_kind", None) == "image_target":
+                record["gaze_kind"] = "image_target"
+                record["gaze_model"] = {"name": gaze.estimator.model_name,
+                                        "in_frame_threshold": gaze.estimator.threshold,
+                                        "head_localization": "pose_landmarks_v1"}
             record["gaze"] = [asdict(observation) for observation in observations]
             if calibration is not None:
                 record["schema_version"] = 3

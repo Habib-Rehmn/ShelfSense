@@ -19,10 +19,19 @@ COPY --from=test /tmp/vision-smoke-report.json /vision-smoke-report.json
 FROM test AS gaze-test
 RUN apt-get update && apt-get install -y --no-install-recommends git \
     && rm -rf /var/lib/apt/lists/*
-RUN pip install --no-cache-dir '.[gaze]'
+RUN pip install --no-cache-dir '.[l2cs]'
 COPY tests/gaze_smoke.py ./tests/gaze_smoke.py
 RUN pip check && python tests/gaze_smoke.py
 
 FROM scratch AS gaze-report
 COPY --from=gaze-test /tmp/gaze-smoke-report.json /gaze-smoke-report.json
 COPY --from=gaze-test /tmp/vision-smoke-report.json /vision-smoke-report.json
+
+FROM test AS gazelle-test
+RUN pip install --no-cache-dir '.[gaze]'
+RUN python -c "from urllib.request import urlretrieve; urlretrieve('https://github.com/fkryan/gazelle/releases/download/v1.0.0/gazelle_dinov2_vitb14_inout.pt', '/models/gazelle_dinov2_vitb14_inout.pt'); urlretrieve('https://github.com/ultralytics/assets/releases/download/v8.4.0/yolo26n-pose.pt', '/models/yolo26n-pose.pt')"
+COPY tests/gazelle_smoke.py ./tests/gazelle_smoke.py
+RUN --mount=type=cache,target=/root/.cache/torch pip check && python tests/gazelle_smoke.py
+
+FROM scratch AS gazelle-report
+COPY --from=gazelle-test /tmp/gazelle-smoke-report.json /gazelle-smoke-report.json

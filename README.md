@@ -1,8 +1,8 @@
 # ShelfSense
 
 Single-camera shelf attention research project. **Six implementation modules:** person
-tracking, frontal-face localization, an L2CS-Net gaze adapter, and supervised
-shelf-zone calibration, temporal smoothing, attention events, database ingestion,
+tracking, pose-landmark head localization, Gaze-LLE image-target estimation,
+shelf geometry mapping, temporal smoothing, attention events, database ingestion,
 an analytics API, a dashboard, held-out evaluation tools and Docker deployment.
 This is a research baseline; real-video accuracy remains unmeasured.
 The detailed project outline is kept locally.
@@ -57,22 +57,27 @@ ByteTrack association. Confidence is detector confidence, not ID certainty.
 
 ## Enable gaze estimation
 
-Install the optional adapter and supply local L2CS weights:
+Gaze-LLE ViT-B in/out is the default. Install the adapter and supply local weights:
 
 ```bash
 pip install -e '.[vision,gaze]'
 shelfsense track data/shelf.mp4 --weights models/yolo26n.pt \
-  --gaze-weights models/L2CSNet_gaze360.pkl \
+  --gaze-weights models/gazelle_dinov2_vitb14_inout.pt \
+  --head-weights models/yolo26n-pose.pt \
   --output outputs/gaze.jsonl --max-frames 100
 ```
 
-See [gaze setup and coordinate conventions](docs/gaze.md) for model sources,
-limitations and the output schema. The OpenCV face detector is a frontal-face
-baseline; missing and ambiguous observations remain unknown.
+See [Gaze-LLE setup](docs/gazelle.md) for downloads, first-run DINOv2 caching,
+CPU setup and limitations. Missing and ambiguous heads remain unknown.
+L2CS is now a legacy option requiring `--gaze-backend l2cs`.
 
 ## Calibrate shelf zones
 
-Try the complete calibration and mapping path with synthetic inputs:
+For Gaze-LLE, copy `configs/shelf.image-target.example.json` to `data/shelf.json`
+and enter your actual frame size, shelf corners and zones. No angle samples are
+needed. Follow the [Gaze-LLE run instructions](docs/gazelle.md#shelf-setup-and-run).
+
+The original angle-based synthetic calibration demo remains available:
 
 ```bash
 PYTHONPATH=src python3 -m shelfsense calibrate configs/shelf.synthetic.json \
@@ -81,7 +86,7 @@ PYTHONPATH=src python3 -m shelfsense map-gaze examples/gaze.synthetic.jsonl \
   --calibration outputs/calibration.json --output outputs/targets.jsonl
 ```
 
-For real video, collect labeled gaze/target samples for your fixed camera and
+For legacy L2CS video, collect labeled gaze/target samples for your fixed camera and
 pass the resulting `--calibration` file to `track` alongside `--gaze-weights`.
 This is a supervised mapping baseline; shelf corners alone cannot locate gaze.
 See [calibration setup and limitations](docs/calibration.md).
@@ -182,7 +187,8 @@ FastAPI, Streamlit and PostgreSQL tests require optional dependencies/services.
 Docker test stages install the hashed analytics lock and run integration checks;
 CI also validates PostgreSQL 16 and full Compose startup. Host-only tests skip
 unavailable extras. See [validation details](docs/deployment.md).
-Real-data evaluation, L2CS model-weight validation and annotated video remain.
+Real-data evaluation and annotated store video remain. See the
+[Gaze-LLE validation procedure](docs/gazelle.md#validation).
 
 ## Commit workflow
 

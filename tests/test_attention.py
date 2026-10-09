@@ -217,7 +217,7 @@ class IntegrationTests(unittest.TestCase):
                  patch("shelfsense.cli.GazeAnalyzer", return_value=gaze), \
                  patch("shelfsense.cli.VideoReader", return_value=video):
                 self.assertEqual(main(["track", str(source), "--weights", str(weights),
-                                       "--gaze-weights", str(gaze_weights), "--calibration",
+                                       "--gaze-weights", str(gaze_weights), "--gaze-backend", "l2cs", "--calibration",
                                        str(ROOT/"configs/shelf.synthetic.json"), "--attention",
                                        "--output", str(output)]), 0)
             rows = [json.loads(line) for line in output.read_text().splitlines()]
