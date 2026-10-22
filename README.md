@@ -11,7 +11,7 @@ Person tracking · Gaze estimation · Shelf-zone analytics
 ![Gaze: Gaze-LLE](https://img.shields.io/badge/Gaze-Gaze--LLE-7C3AED)
 ![Status: Research baseline](https://img.shields.io/badge/Status-Research_baseline-D97706)
 
-[Quick start](#quick-start) · [Video pipeline](#run-on-your-video) · [Results](#measured-results) · [Documentation](#documentation)
+[Demo](#demo) · [Quick start](#quick-start) · [Video pipeline](#run-on-your-video) · [Results](#measured-results) · [Documentation](#documentation)
 
 </div>
 
@@ -26,6 +26,18 @@ processing, database ingestion, an API, a dashboard and evaluation tools.
 > The first Retail Gaze evaluation produced **0 correct target-region hits out
 > of 31 eligible labels**, even with annotated head boxes. The pipeline runs;
 > accurate product-region estimation remains an open problem.
+
+## Demo
+
+[![Animated Retail Gaze demo showing a labeled head box, gaze arrow and target shelf region](docs/assets/retail-gaze-annotated.gif)](docs/assets/retail-gaze-annotated.mp4)
+
+**[▶ Watch the full annotated video (MP4)](docs/assets/retail-gaze-annotated.mp4)**
+
+The preview plays inline and loops. Click it to open the full-resolution video.
+This is **dataset annotation visualization**, not model detection or gaze accuracy:
+green overlays show the labeled head, gaze target and product region. The clip
+comes from Retail Gaze session `5_070017`, with 11.3 seconds of illustrative playback.
+See [measured results](#measured-results) for the model's actual performance.
 
 ## How it works
 
@@ -185,7 +197,8 @@ Arrow origins are visual approximations inside head boxes, not measured eye posi
 
 Follow the [video export instructions](docs/retail-gaze.md#annotated-videos).
 Generated videos and their local gallery live under `outputs/retail-videos/` and
-are excluded from Git.
+are excluded from Git. The selected README demo is copied into `docs/assets/`
+so its preview and MP4 are available in the repository.
 
 ## Explore analytics
 
@@ -289,4 +302,5 @@ push after review. The original implementation plan targeted approximately six
 commits; subsequent evaluation work is recorded separately.
 
 Footage, model weights, generated outputs, credentials and the local `project.md`
-outline are excluded from Git.
+outline are excluded from Git. The selected documentation demo in `docs/assets/`
+is an explicit exception.
