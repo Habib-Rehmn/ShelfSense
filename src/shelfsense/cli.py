@@ -28,6 +28,17 @@ class DemoTracker:
 def main(argv=None):
     parser = argparse.ArgumentParser(description="ShelfSense tracking pipeline")
     commands = parser.add_subparsers(dest="command", required=True)
+    retail = commands.add_parser("evaluate-retail", help="Compare annotated and automatic heads on Retail Gaze")
+    retail.add_argument("dataset", type=Path)
+    retail.add_argument("--sessions", nargs="+", required=True)
+    retail.add_argument("--split", choices=["test", "val", "train", "all"], default="test")
+    retail.add_argument("--weights", type=Path, required=True)
+    retail.add_argument("--head-weights", type=Path, required=True)
+    retail.add_argument("--gaze-weights", type=Path, required=True)
+    retail.add_argument("--device", default="cpu")
+    retail.add_argument("--threads", type=int, default=2)
+    retail.add_argument("--output-dir", type=Path, required=True)
+    retail.add_argument("--original-frames", type=Path, help="Original Kaggle JPEG root, organized by subject/session")
     evaluate_parser = commands.add_parser("evaluate", help="Evaluate labeled held-out shelf observations")
     evaluate_parser.add_argument("source", type=Path)
     evaluate_parser.add_argument("--labels", type=Path, required=True)
@@ -84,6 +95,14 @@ def main(argv=None):
         for name, field in AttentionConfig.__dataclass_fields__.items():
             command.add_argument("--" + name.replace("_", "-"), type=float, default=field.default)
     args = parser.parse_args(argv)
+    if args.command == "evaluate-retail":
+        from .retail_evaluation import run
+        try:
+            result = run(args)
+        except (ValueError, OSError, RuntimeError, ImportError, KeyError) as exc:
+            parser.exit(1, f"Retail evaluation failed: {exc}\n")
+        print(json.dumps(result["metrics"], indent=2))
+        return 0
     if args.command == "smoke":
         from .smoke import run_smoke
         try:

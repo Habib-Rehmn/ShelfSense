@@ -1,0 +1,11 @@
+FROM shelfsense:vision AS render
+WORKDIR /app
+ENV PYTHONPATH=/app/src
+COPY src ./src
+COPY data/retail_gaze /dataset
+COPY outputs/retail-gaze-validation/predictions.jsonl /predictions.jsonl
+RUN --network=none python -m shelfsense.retail_video /dataset \
+    --original-frames /dataset/original_frames --predictions /predictions.jsonl \
+    --sessions 1_060433 5_070017 9_073001 --output-dir /videos
+FROM scratch AS videos
+COPY --from=render /videos/ /

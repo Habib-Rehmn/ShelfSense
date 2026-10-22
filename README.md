@@ -144,6 +144,11 @@ Evaluation reports coverage, all-label accuracy, macro F1, confusion matrices,
 and point/angular errors when suitable labels exist. Missing predictions count
 as abstentions. See [evaluation and experiment records](docs/evaluation.md).
 
+For real retail footage, `evaluate-retail` compares annotated-head Gaze-LLE with
+automatic YOLO26n tracking and pose-based head localization, writes gaze overlays,
+and reports point error, product-region hits and coverage. See the
+[Retail Gaze evaluation workflow](docs/retail-gaze.md) for data preparation and commands.
+
 Docker Compose starts PostgreSQL, initialization, the API and dashboard. Set
 `SHELFSENSE_POSTGRES_PASSWORD` in a local `.env`, then run:
 
@@ -187,8 +192,9 @@ FastAPI, Streamlit and PostgreSQL tests require optional dependencies/services.
 Docker test stages install the hashed analytics lock and run integration checks;
 CI also validates PostgreSQL 16 and full Compose startup. Host-only tests skip
 unavailable extras. See [validation details](docs/deployment.md).
-Real-data evaluation and annotated store video remain. See the
-[Gaze-LLE validation procedure](docs/gazelle.md#validation).
+Retail Gaze supports a small real-data diagnostic evaluation. Full-dataset and
+deployment-camera validation remain; see the [Retail Gaze workflow](docs/retail-gaze.md)
+and [Gaze-LLE validation procedure](docs/gazelle.md#validation).
 
 ## Commit workflow
 

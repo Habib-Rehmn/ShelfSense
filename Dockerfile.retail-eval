@@ -1,0 +1,18 @@
+# Local prepared image contains CPU dependencies, weights and Torch Hub cache.
+FROM shelfsense:vision AS evaluation
+WORKDIR /app
+ENV PYTHONPATH=/app/src
+COPY src ./src
+COPY tests ./tests
+COPY configs ./configs
+COPY examples ./examples
+COPY data/retail_gaze /dataset
+RUN --network=none python -m unittest discover -s tests -v
+RUN --network=none python -m shelfsense evaluate-retail /dataset \
+    --sessions 1_060433 5_070017 9_073001 --split test \
+    --original-frames /dataset/original_frames \
+    --weights /models/yolo26n.pt --head-weights /models/yolo26n-pose.pt \
+    --gaze-weights /models/gazelle_dinov2_vitb14_inout.pt \
+    --threads 2 --output-dir /retail-results
+FROM scratch AS report
+COPY --from=evaluation /retail-results/ /
