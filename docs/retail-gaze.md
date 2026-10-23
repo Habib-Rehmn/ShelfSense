@@ -67,8 +67,8 @@ docker build -f Dockerfile.retail-eval --target report \
   --output type=local,dest=outputs/retail-gaze-validation .
 ```
 
-That Dockerfile uses a local prepared image; it is not a standalone model download
-recipe. Its companion ignore file admits the dataset inputs, including originals.
+Build its `shelfsense:vision` prerequisite from a fresh checkout using the
+[reproducible CPU recipe](releasing.md#fresh-clone-cpu-build). Its companion ignore file admits the dataset inputs, including originals.
 
 ## Outputs and interpretation
 

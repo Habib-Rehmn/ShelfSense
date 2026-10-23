@@ -1,0 +1,17 @@
+name: CPU vision validation
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  pretrained-smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build pinned CPU environment and run offline inference
+        run: docker build -f Dockerfile.vision --target report --output type=local,dest=outputs/vision-release .
+      - uses: actions/upload-artifact@v4
+        with:
+          name: cpu-vision-provenance
+          path: outputs/vision-release/

@@ -4,6 +4,7 @@ WORKDIR /app
 ENV PYTHONPATH=/app/src
 COPY src ./src
 COPY tests ./tests
+COPY scripts ./scripts
 COPY configs ./configs
 COPY examples ./examples
 COPY data/retail_gaze /dataset

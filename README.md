@@ -268,7 +268,7 @@ Run the unit suite without ML dependencies:
 PYTHONPATH=src python3 -m unittest discover -s tests -v
 ```
 
-The Retail Gaze validation run discovered **97 tests**: **92 passed** in the CPU
+The recorded Retail Gaze validation run discovered **97 tests**: **92 passed** in the CPU
 vision image and five optional analytics/PostgreSQL checks were skipped. Host
 checks also skip unavailable vision dependencies. Test totals may grow as the
 project develops.
@@ -294,6 +294,14 @@ tracking identity continuity and real-world attention-duration thresholds.
 | [Analytics](docs/analytics.md) | Database ingestion, API routes and dashboard metrics. |
 | [Evaluation](docs/evaluation.md) | Held-out labels, coverage and experiment records. |
 | [Deployment](docs/deployment.md) | Docker setup, services and validation checks. |
+
+## Contributing and release readiness
+
+See [CONTRIBUTING.md](CONTRIBUTING.md) for development and pull requests,
+[SECURITY.md](SECURITY.md) for vulnerability reporting, and [ROADMAP.md](ROADMAP.md)
+for research priorities. The [fresh-clone CPU build](docs/releasing.md) prepares
+locked dependencies and verified model assets without a pre-existing local image.
+[Third-party notices](THIRD_PARTY_NOTICES.md) document dependency and demo-media terms.
 
 ## Development workflow
 

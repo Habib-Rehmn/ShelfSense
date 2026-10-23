@@ -15,3 +15,7 @@ Green overlays visualize dataset annotations, not model predictions. The arrow
 origin is a heuristic position in the head box. Playback timing is illustrative.
 These two selected media files are included for documentation; the full dataset,
 weights and other generated outputs remain ignored.
+
+The original Kaggle publisher currently declares CC0: Public Domain (checked
+2026-10-22). See [third-party notices](../../THIRD_PARTY_NOTICES.md) for the metadata
+source and the distinction between dataset media and ShelfSense code licensing.

@@ -6,8 +6,14 @@ build-backend = "setuptools.build_meta"
 name = "shelfsense"
 version = "0.1.0"
 description = "Single-camera shelf attention research pipeline"
+readme = "README.md"
 requires-python = ">=3.11"
 dependencies = []
+
+[project.urls]
+Repository = "https://github.com/Habib-Rehmn/ShelfSense"
+Issues = "https://github.com/Habib-Rehmn/ShelfSense/issues"
+Documentation = "https://github.com/Habib-Rehmn/ShelfSense#documentation"
 
 [project.optional-dependencies]
 vision = ["ultralytics>=8.4.0,<9", "opencv-python>=4.10,<5", "lap>=0.5.12,<0.6"]

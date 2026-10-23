@@ -28,6 +28,7 @@ FROM app AS test
 USER root
 RUN pip install --no-cache-dir 'httpx>=0.27,<1'
 COPY tests ./tests
+COPY scripts ./scripts
 USER shelfsense
 RUN python -m unittest discover -s tests -v \
     && python -m shelfsense smoke --output-dir outputs/build-smoke

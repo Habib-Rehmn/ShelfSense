@@ -1,0 +1,31 @@
+name: Bug report
+description: Report a reproducible code or setup problem.
+body:
+  - type: markdown
+    attributes:
+      value: "For vulnerabilities, follow SECURITY.md. Do not attach secrets or customer footage."
+  - type: textarea
+    id: environment
+    attributes:
+      label: Environment
+      description: Commit/version, operating system, Python version, install command, CPU/GPU.
+    validations:
+      required: true
+  - type: textarea
+    id: reproduce
+    attributes:
+      label: Steps to reproduce
+      description: Prefer a minimal synthetic example and the exact command.
+    validations:
+      required: true
+  - type: textarea
+    id: behavior
+    attributes:
+      label: Expected and observed behavior
+    validations:
+      required: true
+  - type: textarea
+    id: logs
+    attributes:
+      label: Redacted error output
+      render: text

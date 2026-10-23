@@ -31,5 +31,32 @@ docker build --target postgres-test -t shelfsense:postgres-test .
 The PostgreSQL test stage uses Debian's PostgreSQL 15; Compose and CI additionally
 target PostgreSQL 16. Test-only database binaries are excluded from the runtime image.
 
-The vision/gaze environment needs its own validated lock, model file hashes,
-and exact Gaze-LLE and DINOv2 source revisions (plus L2CS if using the legacy extra). It is not part of the analytics image.
+## CPU vision environment
+
+`vision-cpu.lock` records the complete tested Linux x86_64 / Python 3.12 CPU
+runtime, including the CPU-only PyTorch builds. Every wheel has an exact HTTPS
+URL and SHA-256 hash, and installation enforces `--require-hashes`. The dependency-free package
+continues to support Python 3.11; this lock is platform-specific.
+
+Use `Dockerfile.vision` to install it, prepare verified models and pinned Hub
+sources, and run offline inference. See [release setup](../docs/releasing.md).
+The existing `Dockerfile.vision-test` remains a development smoke recipe with
+version ranges; it is not the reproducible release image.
+
+When changing the CPU environment, regenerate the lock in an isolated Python
+3.12 Linux environment, retain installation provenance and rerun the full CPU
+build. Update model source revisions/hashes only after reviewing upstream changes.
+Do not reuse this CPU lock for CUDA or the legacy L2CS extra.
+
+To regenerate from a reviewed installation report (not from untrusted metadata):
+
+```bash
+python scripts/lock_vision_report.py outputs/vision-release/vision-install.json \
+  requirements/vision-cpu.lock
+docker build -f Dockerfile.vision --target runtime -t shelfsense:vision .
+```
+
+For a version update, first resolve and test the intended versions in a separate
+Linux/Python 3.12 environment with `pip install --report`, then use that report.
+The lock generator allows only PyPI and PyTorch artifact hosts. Review the diff
+and validate the resulting image before committing a new lock.

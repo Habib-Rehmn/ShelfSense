@@ -26,8 +26,9 @@ at revision `2d78f9f3bd2a5db360354954ec1a4c526ee8ab55`. This avoids an upstream
 package-discovery issue with installing its Git source as a wheel. The upstream
 code also downloads DINOv2 backbone code and weights through PyTorch Hub. The local
 Gaze-LLE checkpoint contains only decoder weights. An offline run needs that
-Hub cache populated first. The DINOv2 Hub source and runtime package ranges remain unpinned; this is not a complete
-reproducibility lock; retain the tested environment and model hashes.
+Hub cache populated first. For this development installation, DINOv2 Hub source and runtime package ranges
+remain unpinned. Use the [release CPU image](releasing.md) for locked packages,
+pinned Gaze-LLE/DINOv2 sources and hash-verified checkpoints.
 
 ## Head localization and unknown observations
 
@@ -101,8 +102,8 @@ docker build -f Dockerfile.vision-test --target gazelle-report \
 
 It exports package/model provenance and a single gaze-call duration. This does
 not measure detection accuracy, gaze accuracy, full-pipeline FPS or sustained
-consumer-CPU performance. Real shelf-zone accuracy still needs annotated store
-footage. High-angle cameras and hidden heads may produce substantial unknowns.
+consumer-CPU performance. The [Retail Gaze diagnostic](retail-gaze.md) now measures a small real-data
+sample; it does not establish deployment-camera accuracy. High-angle cameras and hidden heads may produce substantial unknowns.
 
 The pretrained smoke passed on an Intel Core i5-1235U with Python 3.12.15,
 PyTorch 2.14.1+cpu and two PyTorch threads. The measured call for two supplied

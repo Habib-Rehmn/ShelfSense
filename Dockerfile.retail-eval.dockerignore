@@ -20,3 +20,6 @@
 !data/retail_gaze/original_frames/
 !data/retail_gaze/original_frames/**
 **/__pycache__
+
+!scripts/
+!scripts/**

@@ -1,0 +1,37 @@
+# Fresh-clone CPU recipe: no locally prepared image, dataset, or model directory.
+FROM python:3.12-slim-bookworm@sha256:34386ef0cb081344d7ec1c103ba398e6e9f64e9ab3a1509accc92a4e24a07258 AS dependencies
+ENV PYTHONDONTWRITEBYTECODE=1 PYTHONUNBUFFERED=1 \
+    TORCH_HOME=/opt/shelfsense-torch YOLO_CONFIG_DIR=/tmp/shelfsense-yolo
+WORKDIR /app
+RUN apt-get update && apt-get install -y --no-install-recommends libgl1 libglib2.0-0 \
+    && rm -rf /var/lib/apt/lists/*
+COPY requirements/vision-cpu.lock /app/requirements/vision-cpu.lock
+RUN pip install --no-cache-dir --require-hashes -r requirements/vision-cpu.lock --report /tmp/vision-install.json && pip check
+
+FROM dependencies AS prepared
+COPY scripts/prepare_vision.py ./scripts/prepare_vision.py
+COPY configs/vision-assets.json ./configs/vision-assets.json
+RUN --mount=type=cache,target=/opt/vision-downloads python scripts/prepare_vision.py \
+    --hub /opt/shelfsense-torch/hub --models /models --cache /opt/vision-downloads
+COPY pyproject.toml README.md ./
+COPY src ./src
+RUN pip install --no-cache-dir --no-build-isolation --no-deps .
+COPY configs ./configs
+COPY examples ./examples
+COPY tests ./tests
+RUN --network=none python -m unittest discover -s tests -v \
+    && python tests/vision_smoke.py /models/yolo26n.pt \
+    && python tests/gazelle_smoke.py
+
+FROM prepared AS runtime
+ENTRYPOINT ["python", "-m", "shelfsense"]
+CMD ["--help"]
+
+FROM scratch AS report
+COPY --from=prepared /tmp/gazelle-smoke-report.json /gazelle-smoke-report.json
+COPY --from=prepared /tmp/vision-smoke-report.json /vision-smoke-report.json
+COPY --from=prepared /models/vision-assets-prepared.json /vision-assets-prepared.json
+COPY --from=prepared /tmp/vision-install.json /vision-install.json
+
+FROM scratch AS install-report
+COPY --from=dependencies /tmp/vision-install.json /vision-install.json
