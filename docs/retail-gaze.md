@@ -197,3 +197,38 @@ done
 ```
 
 The local `outputs/retail-videos/index.html` gallery links the six H.264 videos.
+
+## Automatic detection video on every frame
+
+The test-only comparison above intentionally leaves other frames unevaluated.
+For a continuous demonstration, run automatic person tracking, pose head
+localization and gaze estimation on every original image, with no ground-truth
+head boxes, gaze points or product masks as inputs:
+
+```bash
+docker build -f Dockerfile.detection-video --target video \
+  --output type=local,dest=outputs/full-detection-5_070017 .
+```
+
+This uses the `shelfsense:vision` image built with `Dockerfile.vision` and the 113
+original JPEGs in `data/retail_gaze/original_frames/5/070017/`. It does not read the
+dataset annotation JSON files. Output includes `detection.mp4`, per-frame JSONL,
+previews, a processing summary and input fingerprints. A new directory is
+recommended for each run.
+
+Blue boxes identify tracked people and show track IDs and detector confidence.
+Yellow boxes/arrows show automatically localized heads and predicted gaze.
+Unknown estimates display a reason instead of copying previous gaze predictions.
+This is a visualization run across all splits, **not** an additional test-set
+accuracy score. Its 10 FPS playback is not CPU inference speed.
+
+For a browser-friendly copy, transcode the exported MPEG-4 Part 2 video to H.264:
+
+```bash
+ffmpeg -n -i outputs/full-detection-5_070017/detection.mp4 \
+  -c:v libx264 -crf 20 -pix_fmt yuv420p -movflags +faststart \
+  outputs/full-detection-5_070017/detection-h264.mp4
+```
+
+To process a different original JPEG sequence in a configured Python environment,
+use `python -m shelfsense.detection_video --help` for model and directory options.

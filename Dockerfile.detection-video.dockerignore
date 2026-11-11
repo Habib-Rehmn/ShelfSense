@@ -1,0 +1,10 @@
+**
+!src/
+!src/**
+!data/
+!data/retail_gaze/
+!data/retail_gaze/original_frames/
+!data/retail_gaze/original_frames/5/
+!data/retail_gaze/original_frames/5/070017/
+!data/retail_gaze/original_frames/5/070017/*.jpg
+**/__pycache__

@@ -1,0 +1,11 @@
+# Build shelfsense:vision first using Dockerfile.vision.
+FROM shelfsense:vision AS inference
+WORKDIR /app
+ENV PYTHONPATH=/app/src
+COPY src ./src
+COPY data/retail_gaze/original_frames/5/070017 /frames
+RUN --network=none python -m shelfsense.detection_video /frames \
+    --weights /models/yolo26n.pt --head-weights /models/yolo26n-pose.pt \
+    --gaze-weights /models/gazelle_dinov2_vitb14_inout.pt --output-dir /detection
+FROM scratch AS video
+COPY --from=inference /detection/ /
